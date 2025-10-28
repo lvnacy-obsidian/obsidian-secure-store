@@ -50,6 +50,7 @@ export default [
 				}
 			],
 			'new-cap': 'error',
+			/*
 			'no-console': [
 				'warn',
 				{
@@ -62,6 +63,7 @@ export default [
 					]
 				}
 			],
+			*/
 			'no-eval': 'error',
 			'no-extra-boolean-cast': 'error',
 			'no-implied-eval': 'error',

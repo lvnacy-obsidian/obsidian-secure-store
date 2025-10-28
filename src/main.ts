@@ -72,9 +72,10 @@ export default class SecureStoragePlugin extends Plugin {
 	 */
 	public createStorage(pluginId: string, passphrase?: string): APIKeyStorage {
 		// Return existing instance if already created
-		const cacheKey = `${pluginId}-${passphrase || 'auto'}`;
-		if (this.storageInstances.has(cacheKey)) {
-			return this.storageInstances.get(cacheKey)!;
+		const cacheKey = `${pluginId}-${passphrase ?? 'auto'}`;
+		const existing = this.storageInstances.get(cacheKey);
+		if (existing) {
+			return existing;
 		}
 
 		// Create new namespaced storage

@@ -1,0 +1,21 @@
+{
+  "name": "Debian Node Dev Container",
+  "image": "lvnacy/node-devcontainer",
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "ms-vscode.vscode-typescript-next"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "postCreateCommand": "npm install",
+  "postStartCommand": "bash /workspace/.devcontainer/verify-tools.sh",
+  "features": {}
+}

@@ -1,11 +1,10 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "obsidian-secure-storage",
+	"name": "Secure Storage",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "Encrypted storage for API keys and secrets. Provides a secure storage API for other plugins.",
+	"author": "L V N A C Y",
+	"authorUrl": "https://github.com/xlvnacyx",
 	"isDesktopOnly": false
 }

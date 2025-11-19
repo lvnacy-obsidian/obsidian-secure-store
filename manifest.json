@@ -1,9 +1,9 @@
 {
 	"id": "obsidian-secure-storage",
-	"name": "Secure Storage",
+	"name": "Secure Store",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Encrypted storage for API keys and secrets. Provides a secure storage API for other plugins.",
+	"description": "Encrypted store for API keys and secrets.",
 	"author": "L V N A C Y",
 	"authorUrl": "https://github.com/xlvnacyx",
 	"isDesktopOnly": false

@@ -1,6 +1,6 @@
-# Obsidian Secure Storage
+# Obsidian Secure Store
 
-Encrypted storage for API keys and secrets in Obsidian. Provides a secure storage API that other plugins can use to store sensitive data with AES-256 encryption.
+Encrypted store for API keys and secrets in Obsidian, available to other plugins to consume and use to store sensitive data with AES-256 encryption.
 
 ## Features
 

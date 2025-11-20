@@ -1,4 +1,4 @@
-export interface APIKeyStorage {
+export interface APIKeyStore {
 	/** Store API key securely */
 	store(key: string, value: string): Promise<void>;
 	/** Retrieve API key securely */
@@ -13,12 +13,29 @@ export interface APIKeyStorage {
 	clearAll(): Promise<void>;
 }
 
-export interface SecureStorageSettings {
-	// Reserved for future settings
-	showNotifications: boolean;
+export interface MigrationMapping {
+	/** Key in plain text settings */
+	settingsKey: string;
+	/** Key to use in secure store */
+	secureKey: string;
+	/** Optional validation */
+	validate?: (value: string) => boolean;
 }
 
-export interface PluginStorage {
-	pluginId: string;
-	storage: APIKeyStorage;
+export interface MigrationResult {
+	/** Overall success */
+	success: boolean;
+	/** Number of credentials migrated */
+	migrated: number;
+	/** Keys that were migrated */
+	migratedKeys: string[];
+	/** Keys that failed */
+	failed: string[];
+	/** Error details */
+	errors?: string[];
+}
+
+export interface SecureStoreSettings {
+	// Reserved for future settings
+	showNotifications: boolean;
 }

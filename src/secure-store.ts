@@ -1,13 +1,17 @@
 import { Plugin } from 'obsidian';
-import type { APIKeyStorage } from './types';
+import type {
+	APIKeyStore,
+	MigrationMapping,
+	MigrationResult
+} from './types';
 
 /**
- * Secure storage implementation using native Web Crypto API.
+ * Secure store implementation using native Web Crypto API.
  * Works in both Electron (desktop) and Capacitor (mobile) environments.
- * Each plugin gets its own namespaced storage with AES-GCM encryption.
+ * Each plugin gets its own namespaced store with AES-GCM encryption.
  */
-export class SecureStorage implements APIKeyStorage {
-	private storageKey: string;
+export class SecureStore implements APIKeyStore {
+	private storeKey: string;
 	private encryptionKeyPromise: Promise<CryptoKey>;
 
 	constructor(
@@ -15,7 +19,7 @@ export class SecureStorage implements APIKeyStorage {
 		private namespace: string,
 		passphrase?: string
 	) {
-		this.storageKey = `secure_keys_${namespace}`;
+		this.storeKey = `secure_keys_${namespace}`;
 		this.encryptionKeyPromise = this.deriveKey(passphrase ?? this.generateVaultKey());
 	}
 
@@ -51,7 +55,7 @@ export class SecureStorage implements APIKeyStorage {
 		
 		// Use a fixed salt derived from the namespace
 		// In production, you might want to store a random salt per vault
-		const salt = encoder.encode(`obsidian-secure-storage-${this.namespace}`);
+		const salt = encoder.encode(`secure-store-${this.namespace}`);
 		
 		// Import the passphrase as a key
 		const baseKey = await crypto.subtle.importKey(
@@ -103,7 +107,7 @@ export class SecureStorage implements APIKeyStorage {
 		combined.set(iv, 0);
 		combined.set(new Uint8Array(encrypted), iv.length);
 		
-		// Convert to base64 for storage
+		// Convert to base64 for store
 		return this.arrayBufferToBase64(combined);
 	}
 
@@ -163,28 +167,28 @@ export class SecureStorage implements APIKeyStorage {
 	}
 
 	/**
-	 * Load the encrypted storage object from plugin data
+	 * Load the encrypted store object from plugin data
 	 */
-	private async loadStorage(): Promise<Record<string, string>> {
+	private async loadStore(): Promise<Record<string, string>> {
 		const data = await this.plugin.loadData();
-		return data?.[this.storageKey] ?? {};
+		return data?.[this.storeKey] ?? {};
 	}
 
 	/**
-	 * Save the encrypted storage object to plugin data
+	 * Save the encrypted store object to plugin data
 	 */
-	private async saveStorage(storage: Record<string, string>): Promise<void> {
+	private async saveStore(store: Record<string, string>): Promise<void> {
 		const data = await this.plugin.loadData() ?? {};
-		data[this.storageKey] = storage;
+		data[this.storeKey] = store;
 		await this.plugin.saveData(data);
 	}
 
 	async store(key: string, value: string): Promise<void> {
 		try {
-			const storage = await this.loadStorage();
+			const store = await this.loadStore();
 			const encrypted = await this.encrypt(value);
-			storage[key] = encrypted;
-			await this.saveStorage(storage);
+			store[key] = encrypted;
+			await this.saveStore(store);
 		} catch (error) {
 			throw new Error(`Failed to store key: ${error}`);
 		}
@@ -192,8 +196,8 @@ export class SecureStorage implements APIKeyStorage {
 
 	async retrieve(key: string): Promise<string | null> {
 		try {
-			const storage = await this.loadStorage();
-			const encrypted = storage[key];
+			const store = await this.loadStore();
+			const encrypted = store[key];
 			
 			if (!encrypted) {
 				return null;
@@ -207,9 +211,9 @@ export class SecureStorage implements APIKeyStorage {
 
 	async remove(key: string): Promise<void> {
 		try {
-			const storage = await this.loadStorage();
-			delete storage[key];
-			await this.saveStorage(storage);
+			const store = await this.loadStore();
+			delete store[key];
+			await this.saveStore(store);
 		} catch (error) {
 			throw new Error(`Failed to remove key: ${error}`);
 		}
@@ -217,8 +221,8 @@ export class SecureStorage implements APIKeyStorage {
 
 	async exists(key: string): Promise<boolean> {
 		try {
-			const storage = await this.loadStorage();
-			return key in storage;
+			const store = await this.loadStore();
+			return key in store;
 		} catch (error) {
 			throw new Error(`Failed to check key existence: ${error}`);
 		}
@@ -226,8 +230,8 @@ export class SecureStorage implements APIKeyStorage {
 
 	async listKeys(): Promise<string[]> {
 		try {
-			const storage = await this.loadStorage();
-			return Object.keys(storage);
+			const store = await this.loadStore();
+			return Object.keys(store);
 		} catch (error) {
 			throw new Error(`Failed to list keys: ${error}`);
 		}
@@ -235,7 +239,7 @@ export class SecureStorage implements APIKeyStorage {
 
 	async clearAll(): Promise<void> {
 		try {
-			await this.saveStorage({});
+			await this.saveStore({});
 		} catch (error) {
 			throw new Error(`Failed to clear all keys: ${error}`);
 		}
@@ -246,11 +250,11 @@ export class SecureStorage implements APIKeyStorage {
 	 */
 	async changePassphrase(newPassphrase: string): Promise<void> {
 		try {
-			const storage = await this.loadStorage();
+			const store = await this.loadStore();
 			const decryptedData: Record<string, string> = {};
 			
 			// Decrypt all values with current key
-			for (const [key, encryptedValue] of Object.entries(storage)) {
+			for (const [key, encryptedValue] of Object.entries(store)) {
 				decryptedData[key] = await this.decrypt(encryptedValue);
 			}
 			
@@ -263,9 +267,100 @@ export class SecureStorage implements APIKeyStorage {
 				reencrypted[key] = await this.encrypt(value);
 			}
 			
-			await this.saveStorage(reencrypted);
+			await this.saveStore(reencrypted);
 		} catch (error) {
 			throw new Error(`Failed to change passphrase: ${error}`);
 		}
+	}
+
+	/**
+	 * Migrate credentials from plain text settings to secure storage.
+	 * This is a helper method for plugins transitioning to Secure Store.
+	 * 
+	 * @param settings - The plugin's settings object containing plain text credentials
+	 * @param mappings - Array of mappings from settings keys to secure keys
+	 * @returns Migration result with details of what was migrated
+	 * 
+	 * @example
+	 * ```typescript
+	 * const result = await store.migrateFromPlainText(this.settings, [
+	 *   { settingsKey: 'apiKey', secureKey: 'api_key' },
+	 *   { settingsKey: 'openaiKey', secureKey: 'openai_key', 
+	 *     validate: (v) => typeof v === 'string' && v.startsWith('sk-') }
+	 * ]);
+	 * 
+	 * if (result.success) {
+	 *   console.log(`Migrated ${result.migrated} credentials`);
+	 *   // Remove migrated keys from settings
+	 *   result.migratedKeys.forEach(key => delete this.settings[key]);
+	 *   await this.saveSettings();
+	 * }
+	 * ```
+	 */
+	async migrateFromPlainText(
+		settings: Record<string, unknown>,
+		mappings: MigrationMapping[]
+	): Promise<MigrationResult> {
+		const result: MigrationResult = {
+			success: true,
+			migrated: 0,
+			migratedKeys: [],
+			failed: [],
+			errors: []
+		};
+
+		for (const mapping of mappings) {
+			const { settingsKey, secureKey, validate } = mapping;
+			
+			try {
+				// Check if the key exists in settings
+				if (!(settingsKey in settings)) {
+					continue;
+				}
+
+				const value = settings[settingsKey];
+
+				// Skip if value is null, undefined, or empty string
+				if (value == null || value === '') {
+					continue;
+				}
+
+				// Convert to string if not already
+				const stringValue = typeof value === 'string' ? value : String(value);
+
+				// Run validation if provided
+				if (validate && !validate(stringValue)) {
+					result.failed.push(settingsKey);
+					result.errors?.push(`Validation failed for ${settingsKey}`);
+					continue;
+				}
+
+				// Check if already migrated (exists in secure store)
+				const alreadyMigrated = await this.exists(secureKey);
+				if (alreadyMigrated) {
+					// Already in secure store, skip but don't count as failure
+					continue;
+				}
+
+				// Store in secure storage
+				await this.store(secureKey, stringValue);
+				
+				result.migrated++;
+				result.migratedKeys.push(settingsKey);
+
+			} catch (error) {
+				result.success = false;
+				result.failed.push(settingsKey);
+				result.errors?.push(`Failed to migrate ${settingsKey}: ${error}`);
+				console.error(`Migration error for ${settingsKey}:`, error);
+			}
+		}
+
+		// Overall success if at least some migrated and no critical failures
+		if (result.failed.length > 0 && result.migrated === 0) {
+			result.success = false;
+		}
+
+		return result;
 	}
 }

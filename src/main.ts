@@ -2,58 +2,58 @@ import {
 	Notice,
 	Plugin
 } from 'obsidian';
-import { SecureStorage } from './secure-storage';
-import { SecureStorageSettingTab } from './settings-tab';
+import { SecureStore } from './secure-store';
+import { SecureStoreSettingTab } from './settings-tab';
 import type {
-	APIKeyStorage,
-	SecureStorageSettings
+	APIKeyStore,
+	SecureStoreSettings
 } from './types';
 
-const DEFAULT_SETTINGS: SecureStorageSettings = {
+const DEFAULT_SETTINGS: SecureStoreSettings = {
 	showNotifications: true
 };
 
 /**
- * Obsidian Secure Storage Plugin
+ * Secure Store for Obsidian Plugins
  * 
- * Provides encrypted storage for API keys and secrets.
+ * Provides encrypted store for API keys and secrets.
  * Other plugins can use this as a library to store sensitive data securely.
  * 
  * Usage from other plugins:
  * ```typescript
- * const secureStoragePlugin = this.app.plugins.plugins['obsidian-secure-storage'];
- * if (secureStoragePlugin) {
- *   const storage = secureStoragePlugin.createStorage('my-plugin-id');
- *   await storage.store('api_key', 'secret-value');
+ * const secureStorePlugin = this.app.plugins.plugins['secure-store'];
+ * if (secureStorePlugin) {
+ *   const store = secureStorePlugin.createStore('my-plugin-id');
+ *   await store.store('api_key', 'secret-value');
  * }
  * ```
  */
-export default class SecureStoragePlugin extends Plugin {
-	settings!: SecureStorageSettings;
-	private storageInstances: Map<string, APIKeyStorage> = new Map();
+export default class SecureStorePlugin extends Plugin {
+	settings!: SecureStoreSettings;
+	private storeInstances: Map<string, APIKeyStore> = new Map();
 
 	async onload() {
 		await this.loadSettings();
 
 		// Add settings tab
-		this.addSettingTab(new SecureStorageSettingTab(this.app, this));
+		this.addSettingTab(new SecureStoreSettingTab(this.app, this));
 
 		// Add ribbon icon
-		this.addRibbonIcon('shield', 'Secure Storage', () => {
-			new Notice('🔐 Secure Storage is active');
+		this.addRibbonIcon('shield', 'Secure Store', () => {
+			new Notice('🔐 Secure Store is active');
 		});
 
 		if (this.settings.showNotifications) {
-			new Notice('🔐 Secure Storage loaded - plugins can now store secrets securely', 3000);
+			new Notice('🔐 Secure Store loaded - plugins can now store secrets securely', 3000);
 		}
 
-		console.log('Secure Storage Plugin: Loaded and ready for use by other plugins');
+		console.log('Secure Store Plugin: Loaded and ready for use by other plugins');
 	}
 
 	onunload() {
-		// Clear storage instances
-		this.storageInstances.clear();
-		console.log('Secure Storage Plugin: Unloaded');
+		// Clear store instances
+		this.storeInstances.clear();
+		console.log('Secure Store Plugin: Unloaded');
 	}
 
 	async loadSettings() {
@@ -65,32 +65,32 @@ export default class SecureStoragePlugin extends Plugin {
 	}
 
 	/**
-	 * Create or retrieve a namespaced storage instance for a plugin
+	 * Create or retrieve a namespaced store instance for a plugin
 	 * @param pluginId - Unique identifier for the calling plugin
 	 * @param passphrase - Optional passphrase for encryption (uses auto-generated if not provided)
-	 * @returns APIKeyStorage instance
+	 * @returns APIKeyStore instance
 	 */
-	public createStorage(pluginId: string, passphrase?: string): APIKeyStorage {
+	public createStore(pluginId: string, passphrase?: string): APIKeyStore {
 		// Return existing instance if already created
 		const cacheKey = `${pluginId}-${passphrase ?? 'auto'}`;
-		const existing = this.storageInstances.get(cacheKey);
+		const existing = this.storeInstances.get(cacheKey);
 		if (existing) {
 			return existing;
 		}
 
-		// Create new namespaced storage
-		const storage = new SecureStorage(this, pluginId, passphrase);
-		this.storageInstances.set(cacheKey, storage);
+		// Create new namespaced store
+		const store = new SecureStore(this, pluginId, passphrase);
+		this.storeInstances.set(cacheKey, store);
 
-		console.log(`Secure Storage: Created storage for plugin: ${pluginId}`);
-		return storage;
+		console.log(`Secure Store: Created store for plugin: ${pluginId}`);
+		return store;
 	}
 
 	/**
-	 * Get all plugin IDs that are using secure storage
+	 * Get all plugin IDs that are using secure store
 	 */
 	public getRegisteredPlugins(): string[] {
-		return Array.from(this.storageInstances.keys())
+		return Array.from(this.storeInstances.keys())
 			.map(key => key.split('-')[0])
 			.filter((v, i, a) => a.indexOf(v) === i); // unique
 	}

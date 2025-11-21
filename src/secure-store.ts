@@ -170,15 +170,22 @@ export class SecureStore implements APIKeyStore {
 	 * Load the encrypted store object from plugin data
 	 */
 	private async loadStore(): Promise<Record<string, string>> {
-		const data = await this.plugin.loadData();
-		return data?.[this.storeKey] ?? {};
+		const data = await this.plugin.loadData() as Record<string, unknown> | null;
+		if (!data || typeof data !== 'object') {
+			return {};
+		}
+		const storeData = data[this.storeKey];
+		if (!storeData || typeof storeData !== 'object') {
+			return {};
+		}
+		return storeData as Record<string, string>;
 	}
 
 	/**
 	 * Save the encrypted store object to plugin data
 	 */
 	private async saveStore(store: Record<string, string>): Promise<void> {
-		const data = await this.plugin.loadData() ?? {};
+		const data = (await this.plugin.loadData() as Record<string, unknown>) ?? {};
 		data[this.storeKey] = store;
 		await this.plugin.saveData(data);
 	}
@@ -326,7 +333,15 @@ export class SecureStore implements APIKeyStore {
 				}
 
 				// Convert to string if not already
-				const stringValue = typeof value === 'string' ? value : String(value);
+				let stringValue: string;
+				if (typeof value === 'string') {
+					stringValue = value;
+				} else if (typeof value === 'number' || typeof value === 'boolean') {
+					stringValue = String(value);
+				} else {
+					// For objects/arrays, use JSON serialization
+					stringValue = JSON.stringify(value);
+				}
 
 				// Run validation if provided
 				if (validate && !validate(stringValue)) {
@@ -342,7 +357,7 @@ export class SecureStore implements APIKeyStore {
 					continue;
 				}
 
-				// Store in secure storage
+				// Store in secure store
 				await this.store(secureKey, stringValue);
 				
 				result.migrated++;

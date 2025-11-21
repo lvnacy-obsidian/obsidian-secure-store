@@ -1,8 +1,11 @@
+import { defineConfig } from 'eslint/config';
 import stylistic from '@stylistic/eslint-plugin';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
+import obs from 'eslint-plugin-obsidianmd';
 
-export default [
+export default defineConfig([
+	...obs.configs.recommended,
 	{
 		ignores: [
 			'node_modules/**',
@@ -130,4 +133,4 @@ export default [
 			'@stylistic/semi': ['error', 'always']
 		}
 	}
-];
+]);

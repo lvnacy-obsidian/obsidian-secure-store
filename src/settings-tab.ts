@@ -4,7 +4,7 @@ import {
 	PluginSettingTab,
 	Setting
 } from 'obsidian';
-import { ConfirmClearModal } from './model';
+import { ConfirmClearModal } from './modal';
 import type SecureStorePlugin from './main';
 
 export class SecureStoreSettingTab extends PluginSettingTab {
@@ -19,22 +19,21 @@ export class SecureStoreSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'Secure Store Settings' });
-
 		// Description
 		const descEl = containerEl.createDiv({ cls: 'setting-item-description' });
 		descEl.createEl('p', { 
 			text: 'This plugin provides encrypted storage infrastructure for other plugins to store API keys and secrets securely.'
 		});
 		descEl.createEl('p', { 
-			text: '🔒 All data is encrypted with AES-256 encryption. Each plugin gets its own isolated namespace.'
+			text: `All data is encrypted with AES-256 encryption 🔒.
+				Each plugin gets its own isolated namespace.`
 		});
 		descEl.createEl('p', { 
-			text: 'Note: This plugin does not store credentials itself. It is used by other plugins as a library.'
+			text: 'Note: this plugin does not store credentials itself. It is used by other plugins as a library.'
 		});
 
 		// General Settings
-		containerEl.createEl('h3', { text: 'General Settings' });
+		new Setting(containerEl).setName('Notifications').setHeading();
 
 		new Setting(containerEl)
 			.setName('Show notifications')
@@ -47,7 +46,7 @@ export class SecureStoreSettingTab extends PluginSettingTab {
 				}));
 
 		// Diagnostics
-		containerEl.createEl('h3', { text: 'Secure Store Instances' });
+		new Setting(containerEl).setName('Store instances').setHeading();
 
 		const registeredPlugins = this.plugin.getRegisteredPlugins();
 		
@@ -63,54 +62,58 @@ export class SecureStoreSettingTab extends PluginSettingTab {
 			registeredPlugins.forEach(pluginId => {
 				new Setting(containerEl)
 					.setName(pluginId)
-					.setDesc('Plugin using Secure Store')
+					.setDesc('Plugin is using Secure Store')
 					.addButton(button => button
-						.setButtonText('Clear Data')
+						.setButtonText('Clear data')
 						.setWarning()
-						.onClick(async () => {
-							try {
-								await this.clearPluginData(pluginId);
-								new Notice(`✅ Cleared data for ${pluginId}`);
-								this.display(); // Refresh
-							} catch (error) {
-								new Notice(`❌ Failed to clear data: ${error}`);
-								console.error('Clear plugin data error:', error);
-							}
-						}));
+						.onClick(() => {
+							this.clearPluginData(pluginId)
+								.then(() => {
+									new Notice(`✅ Cleared data for ${pluginId}`);
+									this.display(); // Refresh
+								})
+								.catch(error => {
+									new Notice(`❌ Failed to clear data: ${error}`);
+									console.error('Clear plugin data error:', error);
+								});
+						})
+					);
 			});
 		}
 
 		// Data Management
-		containerEl.createEl('h3', { text: 'Data Management' });
+		new Setting(containerEl).setName('Data management').setHeading();
 
 		new Setting(containerEl)
 			.setName('Clear all secure data')
-			.setDesc('⚠️ Permanently delete ALL encrypted credentials from ALL plugins. Use with caution.')
+			.setDesc('⚠️ permanently delete all encrypted credentials from all plugins. Use with caution.')
 			.addButton(button => button
-				.setButtonText('Clear All Data')
+				.setButtonText('Clear all data')
 				.setWarning()
 				.onClick(() => {
-					new ConfirmClearModal(this.app, async () => {
-						try {
-							await this.clearAllSecureData();
-							new Notice('✅ All secure data has been cleared');
-							this.display(); // Refresh
-						} catch (error) {
-							new Notice(`❌ Failed to clear data: ${error}`);
-							console.error('Clear data error:', error);
-						}
+					new ConfirmClearModal(this.app, () => {
+						this.clearAllSecureData()
+							.then(() => {
+								new Notice('All secure data has been cleared ✅');
+								this.display(); // Refresh
+							})
+							.catch(error => {
+								new Notice(`Failed to clear data ❌: ${error}`);
+								console.error('Clear all data error:', error);
+							});
 					}).open();
 				}));
 
 		// Developer Information
-		containerEl.createEl('h3', { text: 'For Plugin Developers' });
+		new Setting(containerEl).setName('For plugin developers').setHeading();
 		
 		const devInfo = containerEl.createDiv({ cls: 'setting-item-description' });
 		devInfo.createEl('p', { 
 			text: 'To integrate Secure Store into your plugin, check the documentation on GitHub for examples and API reference.'
 		});
-		devInfo.createEl('p').innerHTML = 
-			'Example: <code>const store = app.plugins.plugins[\'secure-store\'].createStore(\'your-plugin-id\');</code>';
+		devInfo.createEl('p', { 
+			text: 'Example: <code>const store = app.plugins.plugins[\'secure-store\'].createStore(\'your-plugin-id\');</code>'
+		});
 	}
 
 	private async clearAllSecureData(): Promise<void> {
@@ -120,7 +123,7 @@ export class SecureStoreSettingTab extends PluginSettingTab {
 		// Clear store instances cache
 		this.plugin['storeInstances'].clear();
 		
-		console.log('Secure Store: All data cleared');
+		console.debug('Secure Store: ALL data cleared');
 	}
 
 	private async clearPluginData(pluginId: string): Promise<void> {
@@ -134,6 +137,6 @@ export class SecureStoreSettingTab extends PluginSettingTab {
 			this.plugin['storeInstances'].delete(key);
 		}
 		
-		console.log(`Secure Store: Cleared data for plugin: ${pluginId}`);
+		console.debug(`Secure Store: cleared data for plugin: ${ pluginId }`);
 	}
 }

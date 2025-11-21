@@ -1,7 +1,7 @@
 {
 	"id": "secure-store",
 	"name": "Secure Store",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"minAppVersion": "0.15.0",
 	"description": "Encrypted store for API keys and secrets.",
 	"author": "L V N A C Y",

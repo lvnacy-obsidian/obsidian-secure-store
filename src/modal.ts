@@ -16,7 +16,7 @@ export class ConfirmClearModal extends Modal {
 		const { contentEl } = this;
 		contentEl.empty();
 		
-		contentEl.createEl('h2', { text: '⚠️ Clear All Secure Data?' });
+		contentEl.createEl('h2', { text: 'Clear all secure data?' });
 		contentEl.createEl('p', { 
 			text: 'This will permanently delete ALL encrypted credentials stored by ALL plugins using Secure Store. This action cannot be undone.'
 		});
@@ -32,7 +32,7 @@ export class ConfirmClearModal extends Modal {
 				.setButtonText('Cancel')
 				.onClick(() => this.close()))
 			.addButton(btn => btn
-				.setButtonText('Clear All Data')
+				.setButtonText('Clear all data')
 				.setWarning()
 				.onClick(() => {
 					this.onConfirm();

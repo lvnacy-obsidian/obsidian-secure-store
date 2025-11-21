@@ -47,17 +47,18 @@ export default class SecureStorePlugin extends Plugin {
 			new Notice('🔐 Secure Store loaded - plugins can now store secrets securely', 3000);
 		}
 
-		console.log('Secure Store Plugin: Loaded and ready for use by other plugins');
+		console.debug('Secure Store: loaded and ready for use by other plugins');
 	}
 
 	onunload() {
 		// Clear store instances
 		this.storeInstances.clear();
-		console.log('Secure Store Plugin: Unloaded');
+		console.debug('Secure Store Plugin: Unloaded');
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const data = await this.loadData() as SecureStoreSettings | null;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, data ?? {});
 	}
 
 	async saveSettings() {
@@ -82,7 +83,7 @@ export default class SecureStorePlugin extends Plugin {
 		const store = new SecureStore(this, pluginId, passphrase);
 		this.storeInstances.set(cacheKey, store);
 
-		console.log(`Secure Store: Created store for plugin: ${pluginId}`);
+		console.debug(`Secure Store: Created store for plugin: ${ pluginId }`);
 		return store;
 	}
 
